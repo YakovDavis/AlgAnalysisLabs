@@ -11,6 +11,7 @@
 
 constexpr int kPopulationWheatConsumption = 20;
 constexpr int kMaxYears = 10;
+constexpr char kSaveFileName[] = "save.dat";
 
 int year;
 int population;
@@ -47,6 +48,8 @@ int main()
     std::uniform_int_distribution<int> plagueDist(1, 20);
 
     new_game();
+    save_game();
+    load_game();
     bool successFlag = true;
 
     while (year < kMaxYears)
@@ -86,6 +89,83 @@ void new_game()
     wheatPerAcreLastRound = 0;
     wheatDestroyedByRats = 0;
     acrePrice = 0;
+    sowedArea = 0;
+    diedOverall = 0;
+}
+
+void load_game()
+{
+    std::fstream f;
+    f.open(kSaveFileName, std::fstream::in);
+    std::string s;
+    std::getline(f, s);
+    year = std::stoi(s);
+    std::getline(f, s);
+    population = std::stoi(s);
+    std::getline(f, s);
+    wheat = std::stoi(s);
+    std::getline(f, s);
+    area = std::stoi(s);
+    std::getline(f, s);
+    diedLastRound = std::stoi(s);
+    std::getline(f, s);
+    arrivedLastRound = std::stoi(s);
+    std::getline(f, s);
+    plagueLastRound = std::stoi(s);
+    std::getline(f, s);
+    wheatCollectedLastRound = std::stoi(s);
+    std::getline(f, s);
+    wheatPerAcreLastRound = std::stoi(s);
+    std::getline(f, s);
+    wheatDestroyedByRats = std::stoi(s);
+    std::getline(f, s);
+    acrePrice = std::stoi(s);
+    std::getline(f, s);
+    sowedArea = std::stoi(s);
+    std::getline(f, s);
+    diedOverall = std::stoi(s);
+    f.close();
+}
+
+void save_game()
+{
+    std::string s = "";
+    s.append(std::to_string(year));
+    s.append("\n");
+    s.append(std::to_string(population));
+    s.append("\n");
+    s.append(std::to_string(wheat));
+    s.append("\n");
+    s.append(std::to_string(area));
+    s.append("\n");
+    s.append(std::to_string(diedLastRound));
+    s.append("\n");
+    s.append(std::to_string(arrivedLastRound));
+    s.append("\n");
+    s.append(std::to_string(plagueLastRound));
+    s.append("\n");
+    s.append(std::to_string(wheatCollectedLastRound));
+    s.append("\n");
+    s.append(std::to_string(wheatPerAcreLastRound));
+    s.append("\n");
+    s.append(std::to_string(wheatDestroyedByRats));
+    s.append("\n");
+    s.append(std::to_string(acrePrice));
+    s.append("\n");
+    s.append(std::to_string(sowedArea));
+    s.append("\n");
+    s.append(std::to_string(diedOverall));
+    s.append("\n");
+    std::fstream f;
+    f.open(kSaveFileName, std::fstream::out);
+    f.write(s.c_str(), s.size());
+    f.close();
+}
+
+bool save_exists()
+{
+    std::ifstream sFile(kSaveFileName);
+    return sFile.good();
 }
 
 void get_player_input()
