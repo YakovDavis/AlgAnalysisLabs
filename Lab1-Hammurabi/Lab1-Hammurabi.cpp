@@ -9,6 +9,9 @@
 #include <utility>
 #include <stdexcept>
 
+constexpr int kPopulationWheatConsumption = 20;
+constexpr int kMaxYears = 10;
+
 int year;
 int population;
 int wheat;
@@ -21,6 +24,7 @@ int wheatPerAcreLastRound;
 int wheatDestroyedByRats;
 int acrePrice;
 int sowedArea;
+int diedOverall;
 
 void new_game();
 void load_game();
@@ -30,6 +34,7 @@ void turn(std::default_random_engine rndEngine_);
 void display_info();
 void get_player_input();
 int get_input_int();
+void display_score();
 
 int main()
 {
@@ -41,16 +46,31 @@ int main()
     std::uniform_int_distribution<int> wheatPerAcreDist(1, 6);
     std::uniform_int_distribution<int> plagueDist(1, 20);
 
-    while (year < 10)
+    new_game();
+    bool successFlag = true;
+
+    while (year < kMaxYears)
     {
         year++;
         wheatPerAcreLastRound = wheatPerAcreDist(rndEngine);
         acrePrice = acreDist(rndEngine);
         plagueLastRound = (plagueDist(rndEngine) > 3 ? false : true);
+        int populationBackup = population;
         turn(rndEngine);
+        if (1.0f * diedLastRound / populationBackup > 0.45f)
+        {
+            successFlag = false;
+            break;
+        }
         display_info();
         get_player_input();
     }
+    if (successFlag)
+    {
+        display_score();
+    }
+    else
+        std::cout << "Вы проиграли!";
 }
 
 void new_game()
@@ -85,7 +105,7 @@ void get_player_input()
         eatInput = get_input_int();
         std::cout << "Сколько акров земли повелеваешь засеять? ";
         sowInput = get_input_int();
-        if (wheat - (buyInput - sellInput) * acrePrice - eatInput - ceil(sowInput * 0.5) > 0 && eatInput >= population * 20 && sowInput <= 10 * population && area >= sowInput)
+        if (wheat - (buyInput - sellInput) * acrePrice - eatInput - ceil(sowInput * 0.5f) > 0 && eatInput >= population * kPopulationWheatConsumption && sowInput <= 10 * population && area >= sowInput)
             break;
         std::cout << "О, повелитель, пощади нас! У нас только " << population << " человек, " << wheat << " бушелей пшеницы и " << area << " акров земли!" << std::endl;
     }
@@ -95,7 +115,42 @@ void get_player_input()
 
 void turn(std::default_random_engine rndEngine_)
 {
+    wheat += wheatPerAcreLastRound * sowedArea;
+    std::uniform_int_distribution<int> ratDist(0, round(0.07f * wheat));
+    wheatDestroyedByRats = ratDist(rndEngine_);
+    wheat -= wheatDestroyedByRats;
+    if (wheat >= population * kPopulationWheatConsumption)
+    {
+        diedLastRound = 0;
+        wheat -= population * kPopulationWheatConsumption;
+    }
+    else
+    {
+        diedLastRound = population - wheat / (population * kPopulationWheatConsumption);
+        population -= diedLastRound;
+        wheat = 0;
+    }
+    arrivedLastRound = diedLastRound / 2 + (5 - wheatPerAcreLastRound) * wheat / 600 + 1;
+    if (arrivedLastRound < 0)
+        arrivedLastRound = 0;
+    population += arrivedLastRound;
+    if (plagueLastRound)
+        population = population / 2;
+}
 
+void display_score()
+{
+    float p = 1.0f * diedOverall / kMaxYears;
+    int l = area / population;
+
+    if (p > 0.33f && l < 7)
+        std::cout << "Из-за вашей некомпетентности в управлении, народ устроил бунт, и изгнал вас их города.Теперь вы вынуждены влачить жалкое существование в изгнании" << std::endl;
+    else if (p > 0.10f && l < 9)
+        std::cout << "Вы правили железной рукой, подобно Нерону и Ивану Грозному.Народ вздохнул с облегчением, и никто больше не желает видеть вас правителем" << std::endl;
+    else if (p > 0.03f && l < 10)
+        std::cout << "Вы справились вполне неплохо, у вас, конечно, есть недоброжелатели, но многие хотели бы увидеть вас во главе города снова" << std::endl;
+    else
+        std::cout << "Фантастика! Карл Великий, Дизраэли и Джефферсон вместе не справились бы лучше." << std::endl;
 }
 
 int get_input_int()

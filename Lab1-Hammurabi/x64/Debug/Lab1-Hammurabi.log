@@ -1,4 +1,9 @@
 ﻿  Lab1-Hammurabi.cpp
-D:\Library\Documents\AlgLabs\Lab1-Hammurabi\Lab1-Hammurabi.cpp(115,45): warning C4101: 'ex': unreferenced local variable
-D:\Library\Documents\AlgLabs\Lab1-Hammurabi\Lab1-Hammurabi.cpp(119,41): warning C4101: 'ex': unreferenced local variable
+D:\Library\Documents\AlgLabs\Lab1-Hammurabi\Lab1-Hammurabi.cpp(119,56): warning C4244: 'argument': conversion from 'float' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+D:\Library\Documents\AlgLabs\Lab1-Hammurabi\Lab1-Hammurabi.cpp(167,45): warning C4101: 'ex': unreferenced local variable
+D:\Library\Documents\AlgLabs\Lab1-Hammurabi\Lab1-Hammurabi.cpp(171,41): warning C4101: 'ex': unreferenced local variable
   Lab1-Hammurabi.vcxproj -> D:\Library\Documents\AlgLabs\Lab1-Hammurabi\x64\Debug\Lab1-Hammurabi.exe
