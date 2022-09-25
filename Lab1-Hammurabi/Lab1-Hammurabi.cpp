@@ -26,7 +26,7 @@ void new_game();
 void load_game();
 void save_game();
 bool save_exists();
-void turn();
+void turn(std::default_random_engine rndEngine_);
 void display_info();
 void get_player_input();
 int get_input_int();
@@ -39,9 +39,18 @@ int main()
     std::default_random_engine rndEngine(rndDevice());
     std::uniform_int_distribution<int> acreDist(17, 26);
     std::uniform_int_distribution<int> wheatPerAcreDist(1, 6);
-    //std::uniform_int_distribution<int> wheatPerAcreDist(1, 6);
+    std::uniform_int_distribution<int> plagueDist(1, 20);
 
-    display_info();
+    while (year < 10)
+    {
+        year++;
+        wheatPerAcreLastRound = wheatPerAcreDist(rndEngine);
+        acrePrice = acreDist(rndEngine);
+        plagueLastRound = (plagueDist(rndEngine) > 3 ? false : true);
+        turn(rndEngine);
+        display_info();
+        get_player_input();
+    }
 }
 
 void new_game()
@@ -61,22 +70,22 @@ void new_game()
 
 void get_player_input()
 {
+    std::cout << "Что пожелаешь, повелитель?" << std::endl;
     int buyInput = 0;
     int sellInput = 0;
     int eatInput = 0;
     int sowInput = 0;
     while (true)
     {
-        std::cout << "Что пожелаешь, повелитель?" << std::endl;
-        std::cout << "Сколько акров земли повелеваешь купить?" << std::endl;
+        std::cout << "Сколько акров земли повелеваешь купить? ";
         buyInput = get_input_int();
-        std::cout << "Сколько акров земли повелеваешь продать?" << std::endl;
+        std::cout << "Сколько акров земли повелеваешь продать? ";
         sellInput = get_input_int();
-        std::cout << "Сколько бушелей пшеницы повелеваешь съесть?" << std::endl;
+        std::cout << "Сколько бушелей пшеницы повелеваешь съесть? ";
         eatInput = get_input_int();
-        std::cout << "Сколько акров земли повелеваешь засеять?" << std::endl;
+        std::cout << "Сколько акров земли повелеваешь засеять? ";
         sowInput = get_input_int();
-        if (wheat - (buyInput - sellInput) * acrePrice - eatInput > 0 && area >= sowInput)
+        if (wheat - (buyInput - sellInput) * acrePrice - eatInput - ceil(sowInput * 0.5) > 0 && eatInput >= population * 20 && sowInput <= 10 * population && area >= sowInput)
             break;
         std::cout << "О, повелитель, пощади нас! У нас только " << population << " человек, " << wheat << " бушелей пшеницы и " << area << " акров земли!" << std::endl;
     }
@@ -84,7 +93,7 @@ void get_player_input()
     sowedArea = sowInput;
 }
 
-void turn()
+void turn(std::default_random_engine rndEngine_)
 {
 
 }
