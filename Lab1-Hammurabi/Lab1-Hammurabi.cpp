@@ -9,6 +9,8 @@
 #include <utility>
 #include <stdexcept>
 
+#define DEBUG
+
 constexpr int kPopulationWheatConsumption = 20;
 constexpr int kMaxYears = 10;
 constexpr char kSaveFileName[] = "save.dat";
@@ -26,6 +28,7 @@ int wheatDestroyedByRats;
 int acrePrice;
 int sowedArea;
 int diedOverall;
+int eatingBudget;
 
 void new_game();
 void load_game();
@@ -47,33 +50,71 @@ int main()
     std::uniform_int_distribution<int> wheatPerAcreDist(1, 6);
     std::uniform_int_distribution<int> plagueDist(1, 20);
 
-    new_game();
-    save_game();
-    load_game();
+    if (save_exists())
+    {
+        std::cout << "Обнаружена сохраненная игра. Продолжить ее? (y/n) ";
+        if (std::cin.get() == 'y')
+        {
+            load_game();
+            display_info();
+            get_player_input();
+        }
+        else
+        {
+            acrePrice = acreDist(rndEngine);
+            new_game();
+            get_player_input();
+        }
+    }
+    else
+    {
+        acrePrice = acreDist(rndEngine);
+        new_game();
+        get_player_input();
+    }
+
     bool successFlag = true;
+    bool exitFlag = false;
 
     while (year < kMaxYears)
     {
         year++;
         wheatPerAcreLastRound = wheatPerAcreDist(rndEngine);
-        acrePrice = acreDist(rndEngine);
         plagueLastRound = (plagueDist(rndEngine) > 3 ? false : true);
         int populationBackup = population;
         turn(rndEngine);
+#ifdef DEBUG
+        std::cout << "[DEBUG] Население до хода: " << populationBackup << "; Население после: " << population << "; Погибло: " << diedLastRound << "; Доля погибших: " << 1.0f * diedLastRound / populationBackup << std::endl;
+#endif // DEBUG
+
         if (1.0f * diedLastRound / populationBackup > 0.45f)
         {
             successFlag = false;
             break;
         }
+        acrePrice = acreDist(rndEngine);
         display_info();
+        save_game();
+        std::cout << "Игра сохранена. Хотите продолжть? (y/n) ";
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        if (std::cin.get() == 'n')
+        {
+            exitFlag = true;
+            break;
+        }
         get_player_input();
     }
-    if (successFlag)
+
+    if (!exitFlag)
     {
-        display_score();
+        if (successFlag)
+        {
+            display_score();
+        }
+        else
+            std::cout << "От голода погибло слишком много людей. Игра окончена.";
     }
-    else
-        std::cout << "Вы проиграли!";
 }
 
 void new_game()
@@ -88,9 +129,15 @@ void new_game()
     wheatCollectedLastRound = 0;
     wheatPerAcreLastRound = 0;
     wheatDestroyedByRats = 0;
-    acrePrice = 0;
+    //acrePrice = 0;
     sowedArea = 0;
     diedOverall = 0;
+
+    std::cout << "Мой повелитель, соизволь поведать тебе о состоянии дел на начало твоего величайшего правления" << std::endl;
+    std::cout << "\tНаселение города сейчас составляет " << population << " человек;" << std::endl <<
+        "\tСейчас у нас " << wheat << " бушеля пшеницы в амбарах;" << std::endl <<
+        "\tГород сейчас занимает " << area << " акров;" << std::endl <<
+        "\t1 акр земли стоит сейчас " << acrePrice << " бушель." << std::endl;
 }
 
 void load_game()
@@ -185,31 +232,34 @@ void get_player_input()
         eatInput = get_input_int();
         std::cout << "Сколько акров земли повелеваешь засеять? ";
         sowInput = get_input_int();
-        if (wheat - (buyInput - sellInput) * acrePrice - eatInput - ceil(sowInput * 0.5f) > 0 && eatInput >= population * kPopulationWheatConsumption && sowInput <= 10 * population && area >= sowInput)
+
+#ifdef DEBUG
+        std::cout << "[DEBUG] Количество пшеницы после расходов:" << wheat - (buyInput - sellInput) * acrePrice - eatInput - ceil(sowInput * 0.5f) << std::endl;
+#endif // DEBUG
+
+        if (wheat - (buyInput - sellInput) * acrePrice - eatInput - ceil(sowInput * 0.5f) > 0 && sowInput <= 10 * population && area >= sowInput)
             break;
         std::cout << "О, повелитель, пощади нас! У нас только " << population << " человек, " << wheat << " бушелей пшеницы и " << area << " акров земли!" << std::endl;
     }
+    area += buyInput - sellInput;
     wheat -= (buyInput - sellInput) * acrePrice + eatInput;
     sowedArea = sowInput;
+    eatingBudget = eatInput;
 }
 
 void turn(std::default_random_engine rndEngine_)
 {
-    wheat += wheatPerAcreLastRound * sowedArea;
+    wheatCollectedLastRound = wheatPerAcreLastRound * sowedArea;
+    wheat += wheatCollectedLastRound;
     std::uniform_int_distribution<int> ratDist(0, round(0.07f * wheat));
     wheatDestroyedByRats = ratDist(rndEngine_);
     wheat -= wheatDestroyedByRats;
-    if (wheat >= population * kPopulationWheatConsumption)
-    {
+    wheat -= eatingBudget;
+    if (eatingBudget >= population * kPopulationWheatConsumption)
         diedLastRound = 0;
-        wheat -= population * kPopulationWheatConsumption;
-    }
     else
-    {
-        diedLastRound = population - wheat / (population * kPopulationWheatConsumption);
-        population -= diedLastRound;
-        wheat = 0;
-    }
+        diedLastRound = population - eatingBudget / kPopulationWheatConsumption;
+    population -= diedLastRound;
     arrivedLastRound = diedLastRound / 2 + (5 - wheatPerAcreLastRound) * wheat / 600 + 1;
     if (arrivedLastRound < 0)
         arrivedLastRound = 0;
@@ -252,8 +302,6 @@ int get_input_int()
         {
             std::cout << "Введите число корректного диапазона." << std::endl;
         }
-        //if (output > highLimit_)
-        //    std::cout << "О, повелитель, пощади нас! У нас только " << population << " человек, " << wheat << " бушелей пшеницы и " << area << " акров земли!" << std::endl;
         if (output < 0)
             std::cout << "Введите неотрицательное число." << std::endl;
     } while (output < 0);
@@ -271,7 +319,7 @@ void display_info()
             std::cout << ", и ";
     }
     if (arrivedLastRound > 0)
-        std::cout << arrivedLastRound << " человек прибыли в наш великий город";
+        std::cout << "\t" << arrivedLastRound << " человек прибыли в наш великий город";
     if (diedLastRound > 0 || arrivedLastRound > 0)
         std::cout << ";" << std::endl;
     if (plagueLastRound)
