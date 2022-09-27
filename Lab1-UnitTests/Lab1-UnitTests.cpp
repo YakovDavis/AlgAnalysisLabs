@@ -66,8 +66,9 @@ namespace Lab1UnitTests
             std::default_random_engine rndEngine(rndDevice());
             sowedArea = 300;
             wheatPerAcreLastRound = 6;
+            eatingBudget = 600;
             turn(rndEngine);
-            Assert::AreEqual(wheat + wheatDestroyedByRats, 4600);
+            Assert::AreEqual(wheat + wheatDestroyedByRats, 4000);
         }
         TEST_METHOD(TestSaveLoad)
         {
