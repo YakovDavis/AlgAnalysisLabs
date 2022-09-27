@@ -1,0 +1,5 @@
+/Lab1-UnitTests/
+/Lab1-Hammurabi/.vs
+/Lab1-Hammurabi/x64/
+/Lab1-Hammurabi/Lab1-Hammurabi.*
+!/Lab1-Hammurabi/Lab1-Hammurabi.cpp
