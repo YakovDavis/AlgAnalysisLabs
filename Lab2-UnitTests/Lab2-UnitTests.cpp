@@ -67,5 +67,28 @@ namespace Lab2UnitTests
 			Assert::AreEqual(arr[29], std::string("good"));
 			Assert::AreEqual(arr[30], std::string("morning"));
 		}
+
+		TEST_METHOD(IntIteratorReadWrite)
+		{
+			Array<int> a;
+			for (int i = 0; i < 10; ++i)
+				a.insert(i + 1);
+			for (auto it = a.iterator(); it.hasNext(); it.next())
+				it.set(it.get() * 2);
+			int i = 1;
+			for (auto it = a.iterator(); it.hasNext(); it.next())
+			{
+				Assert::AreEqual(it.get(), i * 2);
+				i += 1;
+			}
+			for (auto it = a.reverseIterator(); it.hasNext(); it.next())
+			{
+				if (i == 10)
+					Assert::AreEqual(it.get(), 10);
+				else
+					Assert::AreEqual(it.get(), i * 2);
+				i -= 1;
+			}
+		}
 	};
 }
