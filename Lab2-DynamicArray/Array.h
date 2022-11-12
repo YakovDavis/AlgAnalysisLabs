@@ -146,8 +146,10 @@ int Array<T>::insert(int index, const T& value)
 	if (size_ > index)
 	{
 		for (int i = size_; i > index; i--)
+		{
 			new(array_ + i) T(std::move(array_[i - 1]));
-		array_[index].~T();
+			array_[i - 1].~T();
+		}
 	}
 	new(array_ + index) T(value);
 	size_ += 1;
