@@ -90,5 +90,40 @@ namespace Lab2UnitTests
 				i -= 1;
 			}
 		}
+
+		TEST_METHOD(StrArrCopy)
+		{
+			Array<std::string> arr;
+			for (int i = 0; i < 30; i++)
+				arr.insert("good");
+			arr.insert("morning");
+			arr.insert("night");
+			arr.insert("city");
+			Array<std::string> arr2(arr);
+			Assert::AreEqual(arr2[29], std::string("good"));
+			Assert::AreEqual(arr2[30], std::string("morning"));
+			Assert::AreEqual(arr2[31], std::string("night"));
+			Assert::AreEqual(arr2[32], std::string("city"));
+		}
+
+		TEST_METHOD(StrArrAssign)
+		{
+			Array<std::string> arr;
+			for (int i = 0; i < 30; i++)
+				arr.insert("good");
+			arr.insert("morning");
+			arr.insert("night");
+			arr.insert("city");
+			Array<std::string> arr2;
+			arr2 = arr;
+			Assert::AreEqual(arr2[29], std::string("good"));
+			Assert::AreEqual(arr2[30], std::string("morning"));
+			Assert::AreEqual(arr2[31], std::string("night"));
+			Assert::AreEqual(arr2[32], std::string("city"));
+			Assert::AreEqual(arr[29], std::string("good"));
+			Assert::AreEqual(arr[30], std::string("morning"));
+			Assert::AreEqual(arr[31], std::string("night"));
+			Assert::AreEqual(arr[32], std::string("city"));
+		}
 	};
 }

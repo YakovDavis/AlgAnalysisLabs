@@ -11,6 +11,8 @@ public:
 
 	Array(int capacity);
 
+	Array(const Array& other);
+
 	~Array();
 
 	int insert(const T& value);
@@ -22,6 +24,8 @@ public:
 	const T& operator[](int index) const;
 
 	T& operator[](int index);
+
+	Array& operator=(Array other);
 
 	int size() const;
 
@@ -85,15 +89,29 @@ Array<T>::Array(int capacity)
 }
 
 template<typename T>
+Array<T>::Array(const Array<T>& other)
+{
+	capacity_ = other.capacity_;
+	size_ = other.size_;
+	array_ = (T*)std::malloc(capacity_ * sizeof(T));
+	for (int i = 0; i < size_; i++)
+	{
+		new(array_ + i) T(other.array_[i]);
+	}
+}
+
+template<typename T>
 Array<T>::~Array()
 {
+	for (int i = 0; i < size_; i++)
+		array_[i].~T();
 	std::free(array_);
 }
 
 template<typename T>
 int Array<T>::insert(const T& value)
 {
-	if (size_ >= capacity_)
+	if (size_ + 1 > capacity_)
 	{
 		capacity_ *= 2;
 		T* tmp = (T*)std::malloc(capacity_ * sizeof(T));
@@ -113,7 +131,7 @@ int Array<T>::insert(const T& value)
 template<typename T>
 int Array<T>::insert(int index, const T& value)
 {
-	if (size_ >= capacity_)
+	if (size_ + 1 > capacity_)
 	{
 		capacity_ *= 2;
 		T* tmp = (T*)std::malloc(capacity_ * sizeof(T));
@@ -158,6 +176,15 @@ template<typename T>
 T& Array<T>::operator[](int index)
 {
 	return array_[index];
+}
+
+template<typename T>
+Array<T>& Array<T>::operator=(Array other)
+{
+	std::swap(array_, other.array_);
+	std::swap(size_, other.size_);
+	std::swap(capacity_, other.capacity_);
+	return *this;
 }
 
 template<typename T>
