@@ -28,6 +28,15 @@ namespace Lab2UnitTests
 			Assert::AreEqual(arr[30], std::string("world"));
 		}
 
+		TEST_METHOD(StrReadWriteCustomCapacityOutBounds)
+		{
+			Array<std::string> arr(3);
+			for (int i = 0; i < 30; i++)
+				arr.insert("hello");
+			arr.insert("world");
+			Assert::AreEqual(arr[30], std::string("world"));
+		}
+
 		TEST_METHOD(StrInsert)
 		{
 			Array<std::string> arr;
@@ -56,6 +65,22 @@ namespace Lab2UnitTests
 			Assert::AreEqual(arr[30], std::string("morning"));
 			Assert::AreEqual(arr[31], std::string("night"));
 			Assert::AreEqual(arr[32], std::string("city"));
+		}
+
+		TEST_METHOD(LongStrRemove)
+		{
+			Array<std::string> arr;
+			for (int i = 0; i < 30; i++)
+				arr.insert("good00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+			arr.insert("morning0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+			arr.insert("morning0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+			arr.insert("night000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+			arr.insert("city0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+			arr.remove(30);
+			Assert::AreEqual(arr[29], std::string("good00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"));
+			Assert::AreEqual(arr[30], std::string("morning0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"));
+			Assert::AreEqual(arr[31], std::string("night000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"));
+			Assert::AreEqual(arr[32], std::string("city0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"));
 		}
 
 		TEST_METHOD(StrInsertEnd)
@@ -91,7 +116,7 @@ namespace Lab2UnitTests
 			}
 		}
 
-		TEST_METHOD(StrArrCopy)
+		TEST_METHOD(StrArrCopyConstruct)
 		{
 			Array<std::string> arr;
 			for (int i = 0; i < 30; i++)
@@ -106,7 +131,7 @@ namespace Lab2UnitTests
 			Assert::AreEqual(arr2[32], std::string("city"));
 		}
 
-		TEST_METHOD(StrArrAssign)
+		TEST_METHOD(StrArrCopyAssign)
 		{
 			Array<std::string> arr;
 			for (int i = 0; i < 30; i++)
@@ -124,6 +149,38 @@ namespace Lab2UnitTests
 			Assert::AreEqual(arr[30], std::string("morning"));
 			Assert::AreEqual(arr[31], std::string("night"));
 			Assert::AreEqual(arr[32], std::string("city"));
+		}
+
+		TEST_METHOD(StrArrMoveConstruct)
+		{
+			Array<std::string> arr;
+			for (int i = 0; i < 30; i++)
+				arr.insert("good");
+			arr.insert("morning");
+			arr.insert("night");
+			arr.insert("city");
+			Array<std::string> arr2 (std::move(arr));
+			Assert::AreEqual(arr2[29], std::string("good"));
+			Assert::AreEqual(arr2[30], std::string("morning"));
+			Assert::AreEqual(arr2[31], std::string("night"));
+			Assert::AreEqual(arr2[32], std::string("city"));
+			Assert::AreEqual(arr.size(), 0);
+		}
+
+		TEST_METHOD(StrArrMoveAssign)
+		{
+			Array<std::string> arr;
+			for (int i = 0; i < 30; i++)
+				arr.insert("good");
+			arr.insert("morning");
+			arr.insert("night");
+			arr.insert("city");
+			Array<std::string> arr2 = std::move(arr);
+			Assert::AreEqual(arr2[29], std::string("good"));
+			Assert::AreEqual(arr2[30], std::string("morning"));
+			Assert::AreEqual(arr2[31], std::string("night"));
+			Assert::AreEqual(arr2[32], std::string("city"));
+			Assert::AreEqual(arr.size(), 0);
 		}
 	};
 }
