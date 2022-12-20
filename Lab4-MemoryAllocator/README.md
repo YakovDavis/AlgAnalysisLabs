@@ -12,6 +12,7 @@ MemoryAllocator();
 ```
 virtual ~MemoryAllocator();
 ```
+Деструктор.
 ```
 virtual void init();
 ```
