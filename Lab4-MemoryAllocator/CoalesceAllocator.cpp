@@ -1,6 +1,5 @@
 #include "CoalesceAllocator.h"
 
-
 CoalesceAllocator::CoalesceAllocator(size_t pageSize)
 {
 	pageSize_ = pageSize;
@@ -73,9 +72,9 @@ void* CoalesceAllocator::alloc(size_t size)
 		{
 			if (*((size_t*)tmp - 1) >= size + sizeof(size_t)) // Checks if block size is enough
 			{
-				if (*((size_t*)tmp - 1) > size + (sizeof(size_t) + 1) * 2 + 512) // Checks if block size is enough to split it into two (using 512 as the smallest size)
+				if (*((size_t*)tmp - 1) > size + (sizeof(size_t)) * 2 + 2 * DEBUG_FLAGS_SIZE + 512) // Checks if block size is enough to split it into two (using 512 as the smallest size)
 				{
-					FreeBlock* addedBlock = new((FreeBlock*)((char*)tmp + size + 2 + sizeof(size_t))) FreeBlock;
+					FreeBlock* addedBlock = new((FreeBlock*)((char*)tmp + size + 2 * DEBUG_FLAGS_SIZE + sizeof(size_t))) FreeBlock;
 					addedBlock->nextBlock_ = tmp->nextBlock_;
 					addedBlock->prevBlock_ = tmp->prevBlock_;
 					if (addedBlock->prevBlock_ != nullptr)
@@ -84,11 +83,11 @@ void* CoalesceAllocator::alloc(size_t size)
 						p->fh_ = addedBlock;
 					if (addedBlock->nextBlock_ != nullptr)
 						addedBlock->nextBlock_->prevBlock_ = addedBlock;
-					*((size_t*)addedBlock - 1) = *((size_t*)tmp - 1) - (size + 2 + sizeof(size_t));
-					*((unsigned char*)addedBlock - sizeof(size_t) - 1) = 0;
-					*((unsigned char*)addedBlock - sizeof(size_t) - 2) = 255;
-					*((size_t*)tmp - 1) = size;
+					*((size_t*)addedBlock - 1) = *((size_t*)tmp - 1) - (size + 2 * DEBUG_FLAGS_SIZE + sizeof(size_t));
 #ifdef _DEBUG
+					*((size_t*)((char*)addedBlock - sizeof(size_t) - DEBUG_FLAGS_SIZE)) = LEFT_DEBUG_FLAG;
+					*((size_t*)((char*)addedBlock - sizeof(size_t) - 2 * DEBUG_FLAGS_SIZE)) = RIGHT_DEBUG_FLAG;
+					*((size_t*)tmp - 1) = size;
 					numFree_ += 1;
 					std::ostringstream oss;
 					oss << "Page: " << pageNumber << ", address: " << (void*)tmp << ", size: " << *((size_t*)tmp - 1);
@@ -139,8 +138,8 @@ bool CoalesceAllocator::free(void* p)
 		if ((char*)(page->dataStart_) <= (char*)p && (char*)p <= (char*)(page->dataStart_) + pageSize_) // Compares data ranges with the pointer to find the correct page
 		{
 #ifdef _DEBUG
-			assertm(*((unsigned char*)p - sizeof(size_t) - 1) == 0, "CoalesceAllocator: memory corruption detected");
-			assertm(*((unsigned char*)p + *((size_t*)p - 1)) == 255, "CoalesceAllocator: memory corruption detected");
+			assertm(*((size_t*)((char*)p - sizeof(size_t) - DEBUG_FLAGS_SIZE)) == LEFT_DEBUG_FLAG, "CoalesceAllocator: memory corruption detected");
+			assertm(*((size_t*)((char*)p + *((size_t*)p - 1))) == RIGHT_DEBUG_FLAG, "CoalesceAllocator: memory corruption detected");
 #endif
 			size_t size = *((size_t*)p - 1);
 			new(p) FreeBlock; // Creates the supporting structure in case no free left neighbor exists
@@ -149,18 +148,18 @@ bool CoalesceAllocator::free(void* p)
 			FreeBlock* tmp = page->fh_;
 			while (tmp != nullptr)
 			{
-				if ((void*)((char*)tmp + *((size_t*)tmp - 1) + sizeof(size_t) + 2) == p) // Tries to find free left neighbor of freed block
+				if ((void*)((char*)tmp + *((size_t*)tmp - 1) + sizeof(size_t) + 2 * DEBUG_FLAGS_SIZE) == p) // Tries to find free left neighbor of freed block
 				{
-					*((size_t*)tmp - 1) += size + sizeof(size_t) + 2; // If found, changes the neighbor's size to include the freed block + its size property and two safety bytes
+					*((size_t*)tmp - 1) += size + sizeof(size_t) + 2 * DEBUG_FLAGS_SIZE; // If found, changes the neighbor's size to include the freed block + its size property and two safety flags
 					p = (void*)tmp; // Then changes the pointer to point to the new bigger block
 					size = *((size_t*)p - 1);
 #ifdef _DEBUG
 					numFree_ -= 1;
 #endif
 				}
-				if ((void*)((char*)tmp - sizeof(size_t) - 2 - size) == p) // Tries to find free right neighbor of freed block
+				if ((void*)((char*)tmp - sizeof(size_t) - 2 * DEBUG_FLAGS_SIZE - size) == p) // Tries to find free right neighbor of freed block
 				{
-					*((size_t*)p - 1) += sizeof(size_t) + 2 + *((size_t*)tmp - 1); // If found, changes the freed block size to include the neighbor block + its size property and two safety bytes
+					*((size_t*)p - 1) += sizeof(size_t) + 2 * DEBUG_FLAGS_SIZE + *((size_t*)tmp - 1); // If found, changes the freed block size to include the neighbor block + its size property and two safety flags
 					((FreeBlock*)p)->prevBlock_ = ((FreeBlock*)tmp)->prevBlock_; // Copies the neighbors previous block to freed block
 					if (((FreeBlock*)p)->nextBlock_ == nullptr && ((FreeBlock*)tmp)->nextBlock_ != (FreeBlock*)p)
 						((FreeBlock*)p)->nextBlock_ = ((FreeBlock*)tmp)->nextBlock_;
@@ -196,13 +195,15 @@ void CoalesceAllocator::allocPage(Page*& p)
 	p = (Page*)(VirtualAlloc(NULL, sizeof(Page) + pageSize_, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
 	new(p) Page;
 	p->nextPage_ = nullptr;
-	*((unsigned char*)p + sizeof(Page)) = 0;
-	*((unsigned char*)p + sizeof(Page) + pageSize_) = 255;
-	p->fh_ = (FreeBlock*)((char*)p + sizeof(Page) + sizeof(size_t) + 1);
+#ifdef _DEBUG
+	*((size_t*)((char*)p + sizeof(Page))) = LEFT_DEBUG_FLAG;
+	*((size_t*)((char*)p + sizeof(Page) + pageSize_ - DEBUG_FLAGS_SIZE)) = RIGHT_DEBUG_FLAG;
+#endif
+	p->fh_ = (FreeBlock*)((char*)p + sizeof(Page) + sizeof(size_t) + DEBUG_FLAGS_SIZE);
 	new(p->fh_) FreeBlock;
 	p->fh_->prevBlock_ = nullptr;
 	p->fh_->nextBlock_ = nullptr;
-	*((size_t*)(p->fh_) - 1) = pageSize_ - 1 - sizeof(size_t);
+	*((size_t*)(p->fh_) - 1) = pageSize_ - sizeof(size_t) - 2 * DEBUG_FLAGS_SIZE;
 	p->dataStart_ = (char*)p + sizeof(Page);
 }
 

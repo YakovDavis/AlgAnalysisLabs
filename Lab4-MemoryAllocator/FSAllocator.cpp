@@ -62,15 +62,19 @@ void* FSAllocator::alloc()
 	}
 	if (p->numInitialized_ < pageBlockAmount_) // If possible, initialize a new block in the page
 	{
-		size_t* tmp = (size_t*)((char*)p->dataStart_ + blockSize_ * p->numInitialized_);
+		size_t* tmp = (size_t*)((char*)p->dataStart_ + blockSize_ * p->numInitialized_ * BLOCK_AMOUNT_MULTIPLIER + blockSize_);
 		new(tmp) size_t;
 		p->numInitialized_ += 1;
+#ifdef _DEBUG
+		*((size_t*)((char*)tmp - DEBUG_FLAGS_SIZE)) = LEFT_DEBUG_FLAG;
+		*((size_t*)((char*)tmp + blockSize_)) = RIGHT_DEBUG_FLAG;
+#endif
 		if (p->numInitialized_ < pageBlockAmount_) // If there are more blocks to be initialized, write the next index, otherwise -1
 			*tmp = p->numInitialized_;
 		else
 			*tmp = -1;
 	}
-	void* pRes = (void*)((char*)(p->dataStart_) + p->fh_ * blockSize_); // Get the block by free-list head
+	void* pRes = (void*)((char*)(p->dataStart_) + p->fh_ * blockSize_ * BLOCK_AMOUNT_MULTIPLIER + blockSize_); // Get the block by free-list head
 	p->fh_ = *((size_t*)pRes); // Record the new index from the block to free-list head
 	return pRes;
 }
@@ -84,10 +88,14 @@ bool FSAllocator::free(void* p)
 	Page* page = firstPage_;
 	while (page != nullptr)
 	{
-		if ((char*)(page->dataStart_) <= (char*)p && (char*)p <= (char*)(page->dataStart_) + blockSize_ * pageBlockAmount_) // Compare data ranges with the pointer to find the correct page
+		if ((char*)(page->dataStart_) <= (char*)p && (char*)p <= (char*)(page->dataStart_) + blockSize_ * BLOCK_AMOUNT_MULTIPLIER * pageBlockAmount_) // Compare data ranges with the pointer to find the correct page
 		{
+#ifdef _DEBUG
+			assertm(*((size_t*)((char*)p - DEBUG_FLAGS_SIZE)) == LEFT_DEBUG_FLAG, "CoalesceAllocator: memory corruption detected");
+			assertm(*((size_t*)((char*)p + blockSize_)) == RIGHT_DEBUG_FLAG, "CoalesceAllocator: memory corruption detected");
+#endif
 			*((size_t*)p) = page->fh_; // Record current free-list head into the freed block
-			page->fh_ = ((char*)p - (char*)(page->dataStart_)) / blockSize_; // Record freed block's index into free list head
+			page->fh_ = ((char*)p - (char*)(page->dataStart_)) / blockSize_ / BLOCK_AMOUNT_MULTIPLIER; // Record freed block's index into free list head
 			return true;
 		}
 		page = page->nextPage_;
@@ -103,7 +111,7 @@ void FSAllocator::allocPage(Page*& p)
 #ifdef _DEBUG
 	assertm(isInitialized_, "FSAllocator: not initialized before calling allocPage()");
 #endif
-	p = (Page*)(VirtualAlloc(NULL, sizeof(Page) + pageBlockAmount_ * blockSize_, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+	p = (Page*)(VirtualAlloc(NULL, sizeof(Page) + pageBlockAmount_ * BLOCK_AMOUNT_MULTIPLIER * blockSize_, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
 	new(p) Page;
 	p->nextPage_ = nullptr;
 	p->fh_ = 0;
@@ -160,10 +168,10 @@ void FSAllocator::dumpBlocks() const
 					flag = false;
 					break;
 				}
-				tmp = *((size_t*)((char*)(p->dataStart_) + tmp * blockSize_));
+				tmp = *((size_t*)((char*)(p->dataStart_) + tmp * blockSize_ * BLOCK_AMOUNT_MULTIPLIER + blockSize_));
 			}
 			if (flag)
-				std::cout << "Page: " << pageNumber << ", address: " << (void*)((char*)(p->dataStart_) + i * blockSize_) << ", size: " << blockSize_ << "\n";
+				std::cout << "Page: " << pageNumber << ", address: " << (void*)((char*)(p->dataStart_) + i * blockSize_ * BLOCK_AMOUNT_MULTIPLIER + blockSize_) << ", size: " << blockSize_ << "\n";
 		}
 		p = p->nextPage_;
 		pageNumber += 1;

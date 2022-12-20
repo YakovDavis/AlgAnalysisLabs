@@ -1,11 +1,21 @@
 #pragma once
 
 #include <windows.h>
+#include <new>
 
 #ifdef _DEBUG
 #include <iostream>
 #include <cassert>
 #define assertm(exp, msg) assert(((void)msg, exp))
+#define DEBUG_FLAGS_SIZE 8 // The neighbor blocks are used with their whole size, this size is just for the control data
+#define LEFT_DEBUG_FLAG 0xAAAAAAAAAAAAAAAA
+#define RIGHT_DEBUG_FLAG 0x5555555555555555
+#define BLOCK_AMOUNT_MULTIPLIER 3
+#endif
+
+#ifndef _DEBUG
+#define DEBUG_FLAGS_SIZE 0
+#define BLOCK_AMOUNT_MULTIPLIER 1
 #endif
 
 class FSAllocator

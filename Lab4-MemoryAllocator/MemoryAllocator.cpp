@@ -60,6 +60,8 @@ void* MemoryAllocator::alloc(size_t size)
 	assertm(isInitialized_, "MemoryAllocator: not initialized before calling alloc()");
 #endif
 
+	size = 8 * ceil(size / 8.0f);
+
 	if (size <= 16)
 		return fsa16.alloc();
 

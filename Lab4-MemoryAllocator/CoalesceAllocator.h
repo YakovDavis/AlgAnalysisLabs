@@ -1,6 +1,7 @@
 #pragma once
 
 #include <windows.h>
+#include <new>
 
 #ifdef _DEBUG
 #include <iostream>
@@ -9,6 +10,13 @@
 #include <sstream>
 #include <map>
 #define assertm(exp, msg) assert(((void)msg, exp))
+#define DEBUG_FLAGS_SIZE 8
+#define LEFT_DEBUG_FLAG 0xAAAAAAAAAAAAAAAA
+#define RIGHT_DEBUG_FLAG 0x5555555555555555
+#endif
+
+#ifndef _DEBUG
+#define DEBUG_FLAGS_SIZE 0
 #endif
 
 class CoalesceAllocator
